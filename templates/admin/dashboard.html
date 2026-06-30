@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - AgroMarket{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Admin Dashboard</h2>
+    <p class="text-muted">Welcome back, {{ current_user.username }}</p>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Users</h5>
+                    <h2>{{ total_users }}</h2>
+                    <small>Farmers: {{ total_farmers }} | Buyers: {{ total_buyers }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Products</h5>
+                    <h2>{{ total_products }}</h2>
+                    <small>Active: {{ active_products }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Quick Actions</h5>
+                <a href="{{ url_for('reports_summary') }}" class="btn btn-primary">
+                    <i class="fas fa-chart-line"></i> View Reports
+                </a>
+                <a href="{{ url_for('daily_pdf_report') }}" class="btn btn-success">
+                    <i class="fas fa-file-pdf"></i> Download Today's PDF Report
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Transactions</h5>
+                    <h2>{{ total_transactions }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <h2>₹{{ "%.2f"|format(total_revenue) }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Today's Report -->
+    {% if today_report %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Today's Report ({{ today_report.report_date.strftime('%Y-%m-%d') }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Products Listed:</strong> {{ today_report.total_products_listed }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Products Sold:</strong> {{ today_report.total_products_sold }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Revenue:</strong> ₹{{ "%.2f"|format(today_report.total_revenue) }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Active Buyers:</strong> {{ today_report.total_buyers }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Recent Activities -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for product in recent_products %}
+                        <div class="list-group-item">
+                            <strong>{{ product.name }}</strong>
+                            <span class="float-end">₹{{ product.current_price }}</span>
+                            <br>
+                            <small>By {{ product.farmer.username }} | {{ product.created_at.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for transaction in recent_transactions %}
+                        <div class="list-group-item">
+                            <strong>{{ transaction.product.name }}</strong>
+                            <span class="float-end">₹{{ "%.2f"|format(transaction.final_price * transaction.quantity) }}</span>
+                            <br>
+                            <small>Buyer: {{ transaction.buyer.username }} | {{ transaction.transaction_date.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

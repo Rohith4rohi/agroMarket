@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Market Updates - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Market Updates</h2>
+    
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Post New Update</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label>Title</label>
+                            <input type="text" name="title" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Content</label>
+                            <textarea name="content" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Location (Optional)</label>
+                                <input type="text" name="location" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label>Commodity (Optional)</label>
+                                <input type="text" name="commodity" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label>Price (Optional)</label>
+                                <input type="number" step="0.01" name="price" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label>Trend</label>
+                                <select name="trend" class="form-control">
+                                    <option value="up">Up 📈</option>
+                                    <option value="stable">Stable ➡️</option>
+                                    <option value="down">Down 📉</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3 mt-3">
+                            <label>Expires After (Days)</label>
+                            <input type="number" name="expires_days" class="form-control" value="7">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Post Update</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Updates</h5>
+                </div>
+                <div class="card-body">
+                    <div id="market-updates-list">
+                        {% for update in updates %}
+                        <div class="market-update mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between">
+                                <h6>{{ update.title }}</h6>
+                                <small class="text-muted">{{ update.created_at.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                            <p>{{ update.content }}</p>
+                            {% if update.location %}<small>📍 {{ update.location }}</small>{% endif %}
+                            {% if update.commodity %}<small> | 🌾 {{ update.commodity }}</small>{% endif %}
+                            {% if update.price %}
+                            <br><strong>₹{{ update.price }}</strong>
+                            <span class="trend-{{ update.trend }}">{{ '📈' if update.trend == 'up' else '📉' if update.trend == 'down' else '➡️' }}</span>
+                            {% endif %}
+                            {% if update.expires_at %}
+                            <br><small class="text-muted">Expires: {{ update.expires_at.strftime('%Y-%m-%d') }}</small>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

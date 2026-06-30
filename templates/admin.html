@@ -1,0 +1,11 @@
+<h2>Admin Dashboard</h2>
+
+<h3>Users</h3>
+{% for u in users %}
+  {{u.username}} - {{u.user_type}} <br>
+{% endfor %}
+
+<h3>Products</h3>
+{% for p in products %}
+  {{p.name}} - {{p.status}} <br>
+{% endfor %}

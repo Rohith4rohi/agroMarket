@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - AgroMarket{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">{{ product.name }}</h2>
+                    <p class="text-muted">Posted by {{ product.farmer.username }} on {{ product.created_at.strftime('%Y-%m-%d') }}</p>
+                    
+                    {% if product.image_filename %}
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='uploads/' + product.image_filename) }}" 
+                             alt="{{ product.name }}" 
+                             class="img-fluid rounded" 
+                             style="max-height: 300px;">
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h5>Product Details</h5>
+                            <table class="table">
+                                <tr>
+                                    <th>Category:</th>
+                                    <td>{{ product.category }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Total Quantity:</th>
+                                    <td>{{ product.total_quantity }} {{ product.unit }}</td>
+                                </tr>
+                                {% if product.is_bulk_sale %}
+                                <tr>
+                                    <th>Available Quantity:</th>
+                                    <td class="text-success">{{ product.available_quantity }} {{ product.unit }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Min Purchase:</th>
+                                    <td>{{ product.min_purchase_quantity }} {{ product.unit }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Base Price:</th>
+                                    <td>₹{{ "%.2f"|format(product.base_price) }}/{{ product.unit }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Current Price:</th>
+                                    <td class="current-price fw-bold text-success">₹{{ "%.2f"|format(product.current_price) }}/{{ product.unit }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Price Range:</th>
+                                    <td>₹{{ product.min_price_limit }} - ₹{{ product.max_price_limit }}/{{ product.unit }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Auction Ends:</th>
+                                    <td class="auction-end" data-time="{{ product.auction_end.isoformat() }}">
+                                        {{ product.auction_end.strftime('%Y-%m-%d %H:%M') }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        <span class="badge {% if product.status == 'active' %}bg-success{% else %}bg-secondary{% endif %} status-badge">
+                                            {{ product.status|upper }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Description</h5>
+                            <p>{{ product.description }}</p>
+                            {% if product.is_bulk_sale %}
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle"></i> 
+                                <strong>Bulk Sale:</strong> You can purchase partial quantities. Minimum purchase: {{ product.min_purchase_quantity }} {{ product.unit }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if product.status == 'active' and current_user.is_authenticated and current_user.user_type == 'buyer' %}
+                        <div class="mt-4">
+                            <h5>Place Your Bid</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="bidAmount" class="form-label">Bid Amount (₹ per {{ product.unit }})</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        <input type="number" id="bidAmount" class="form-control" 
+                                               step="0.01" 
+                                               min="{{ product.current_price + 0.01 }}" 
+                                               max="{{ product.max_price_limit }}"
+                                               placeholder="Enter your bid amount">
+                                    </div>
+                                    <small class="text-muted">Min: ₹{{ "%.2f"|format(product.current_price + 0.01) }} | Max: ₹{{ product.max_price_limit }}</small>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="bidQuantity" class="form-label">
+                                        Quantity ({{ product.unit }})
+                                        {% if product.is_bulk_sale %}
+                                            <span class="badge bg-info">Bulk Sale</span>
+                                        {% endif %}
+                                    </label>
+                                    <input type="number" id="bidQuantity" class="form-control" 
+                                           step="{% if product.is_bulk_sale %}{{ product.min_purchase_quantity }}{% else %}{{ product.total_quantity }}{% endif %}" 
+                                           min="{% if product.is_bulk_sale %}{{ product.min_purchase_quantity }}{% else %}{{ product.total_quantity }}{% endif %}" 
+                                           max="{% if product.is_bulk_sale %}{{ product.available_quantity }}{% else %}{{ product.total_quantity }}{% endif %}"
+                                           value="{% if not product.is_bulk_sale %}{{ product.total_quantity }}{% else %}{{ product.min_purchase_quantity }}{% endif %}"
+                                           {% if not product.is_bulk_sale %}readonly{% endif %}>
+                                    <small class="text-muted">
+                                        {% if product.is_bulk_sale %}
+                                            Available: {{ "%.2f"|format(product.available_quantity) }} {{ product.unit }} | 
+                                            Min purchase: {{ product.min_purchase_quantity }} {{ product.unit }}
+                                        {% else %}
+                                            Total quantity: {{ product.total_quantity }} {{ product.unit }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <button class="btn btn-success btn-lg" onclick="placeBid({{ product.id }})">
+                                    <i class="fas fa-gavel"></i> Place Bid
+                                </button>
+                            </div>
+                            
+                            <div id="bidMessage" class="alert mt-3" style="display: none;"></div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if product.farmer_id == current_user.id and product.status == 'active' %}
+                        <div class="mt-4">
+                            <button class="btn btn-warning" onclick="closeAuction({{ product.id }})">
+                                <i class="fas fa-stop"></i> Close Auction
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Bid History</h5>
+                </div>
+                <div class="card-body bid-history" style="max-height: 400px; overflow-y: auto;">
+                    {% if bids %}
+                        {% for bid in bids %}
+                            <div class="bid-item mb-2 p-2 border-bottom">
+                                <strong>{{ bid.bidder.username }}</strong>
+                                <span class="float-end">₹{{ "%.2f"|format(bid.amount) }}</span>
+                                <br>
+                                <small class="text-muted">
+                                    Quantity: {{ bid.quantity_requested if bid.quantity_requested else product.total_quantity }} {{ product.unit }}
+                                </small>
+                                <br>
+                                <small class="text-muted">{{ bid.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                {% if bid.is_winning %}
+                                    <span class="badge bg-success float-end">WINNING</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No bids yet. Be the first to bid!</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if product.is_bulk_sale and product.status == 'active' and current_user.is_authenticated and current_user.user_type == 'buyer' %}
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Direct Purchase</h5>
+                </div>
+                <div class="card-body">
+                    <p>You can also make a direct purchase at the current price:</p>
+                    <button class="btn btn-info w-100" onclick="showPurchaseModal({{ product.id }})">
+                        <i class="fas fa-shopping-cart"></i> Buy Now
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Purchase Modal -->
+<div class="modal fade" id="purchaseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Direct Purchase</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="purchaseQuantity" class="form-label">Quantity ({{ product.unit }})</label>
+                    <input type="number" id="purchaseQuantity" class="form-control" 
+                           step="{{ product.min_purchase_quantity }}"
+                           min="{{ product.min_purchase_quantity }}"
+                           max="{{ product.available_quantity }}"
+                           value="{{ product.min_purchase_quantity }}">
+                    <small>Available: {{ product.available_quantity }} {{ product.unit }}</small>
+                </div>
+                <div class="mb-3">
+                    <label>Price per unit</label>
+                    <p class="fw-bold">₹{{ "%.2f"|format(product.current_price) }}</p>
+                </div>
+                <div class="mb-3">
+                    <label>Total Amount</label>
+                    <p class="fw-bold text-success" id="totalAmount">₹0.00</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-info" onclick="makePurchase({{ product.id }})">Confirm Purchase</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+    const socket = io();
+    
+    // Join product room for real-time updates
+    socket.emit('join_product', { product_id: {{ product.id }} });
+    
+    // Listen for new bids
+    socket.on('new_bid', function(data) {
+        if (data.product_id === {{ product.id }}) {
+            // Update current price
+            document.querySelector('.current-price').textContent = '₹' + parseFloat(data.bid_amount).toFixed(2) + '/{{ product.unit }}';
+            
+            // Add bid to history
+            const bidHistory = document.querySelector('.bid-history');
+            const newBid = document.createElement('div');
+            newBid.className = 'bid-item mb-2 p-2 border-bottom';
+            newBid.innerHTML = `
+                <strong>${data.bidder}</strong>
+                <span class="float-end">₹${parseFloat(data.bid_amount).toFixed(2)}</span>
+                <br>
+                <small class="text-muted">Quantity: ${data.quantity} {{ product.unit }}</small>
+                <br>
+                <small class="text-muted">${data.timestamp}</small>
+            `;
+            bidHistory.insertBefore(newBid, bidHistory.firstChild);
+            
+            // Update min bid amount
+            document.getElementById('bidAmount').min = parseFloat(data.bid_amount) + 0.01;
+            
+            // Show notification
+            showMessage('info', `New bid of ₹${data.bid_amount} from ${data.bidder}`);
+        }
+    });
+    
+    // Listen for auction closed
+    socket.on('auction_closed', function(data) {
+        if (data.product_id === {{ product.id }}) {
+            document.querySelector('.status-badge').className = 'badge bg-secondary status-badge';
+            document.querySelector('.status-badge').textContent = 'CLOSED';
+            if (document.getElementById('bidAmount')) {
+                document.getElementById('bidAmount').disabled = true;
+                document.querySelector('button[onclick*="placeBid"]').disabled = true;
+            }
+            showMessage('info', data.message || 'Auction has been closed');
+        }
+    });
+    
+    function placeBid(productId) {
+        const amount = document.getElementById('bidAmount').value;
+        const quantity = document.getElementById('bidQuantity').value;
+        
+        if (!amount || amount <= 0) {
+            showMessage('danger', 'Please enter a valid bid amount');
+            return;
+        }
+        
+        if (!quantity || quantity <= 0) {
+            showMessage('danger', 'Please enter a valid quantity');
+            return;
+        }
+        
+        // Validate quantity
+        const minQuantity = parseFloat(document.getElementById('bidQuantity').min);
+        const maxQuantity = parseFloat(document.getElementById('bidQuantity').max);
+        
+        if (quantity < minQuantity) {
+            showMessage('danger', `Minimum quantity is ${minQuantity} {{ product.unit }}`);
+            return;
+        }
+        
+        if (quantity > maxQuantity) {
+            showMessage('danger', `Maximum available quantity is ${maxQuantity} {{ product.unit }}`);
+            return;
+        }
+        
+        fetch(`/place-bid/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                amount: amount,
+                quantity: quantity
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('success', data.message);
+                // Update min bid amount
+                document.getElementById('bidAmount').min = parseFloat(amount) + 0.01;
+                document.getElementById('bidAmount').value = '';
+                // Refresh page after short delay to update bid history
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showMessage('danger', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('danger', 'Error placing bid');
+        });
+    }
+    
+    function closeAuction(productId) {
+        if (confirm('Are you sure you want to close this auction?')) {
+            fetch(`/product/${productId}/close`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('success', data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage('danger', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('danger', 'Error closing auction');
+            });
+        }
+    }
+    
+    function showPurchaseModal(productId) {
+        const modal = new bootstrap.Modal(document.getElementById('purchaseModal'));
+        modal.show();
+        
+        // Calculate total amount when quantity changes
+        const quantityInput = document.getElementById('purchaseQuantity');
+        const pricePerUnit = {{ product.current_price }};
+        
+        function updateTotal() {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const total = quantity * pricePerUnit;
+            document.getElementById('totalAmount').innerHTML = `₹${total.toFixed(2)}`;
+        }
+        
+        quantityInput.addEventListener('input', updateTotal);
+        updateTotal();
+    }
+    
+    function makePurchase(productId) {
+        const quantity = document.getElementById('purchaseQuantity').value;
+        
+        fetch(`/buy-partial/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                quantity: quantity,
+                price: {{ product.current_price }}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error making purchase');
+        });
+    }
+    
+    function showMessage(type, message) {
+        const messageDiv = document.getElementById('bidMessage');
+        messageDiv.className = `alert alert-${type}`;
+        messageDiv.textContent = message;
+        messageDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 5000);
+    }
+    
+    // Countdown timer for auction end
+    function updateCountdown() {
+        const endTimeElement = document.querySelector('.auction-end');
+        if (!endTimeElement) return;
+        
+        const endTime = new Date(endTimeElement.dataset.time).getTime();
+        const now = new Date().getTime();
+        const distance = endTime - now;
+        
+        if (distance < 0) {
+            endTimeElement.innerHTML = 'Auction Ended';
+            endTimeElement.classList.add('text-danger');
+            return;
+        }
+        
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        endTimeElement.innerHTML = `${hours}h ${minutes}m ${seconds}s remaining`;
+    }
+    
+    // Update countdown every second
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+</script>
+
+<style>
+.bid-item {
+    transition: background-color 0.3s;
+}
+.bid-item:hover {
+    background-color: #f8f9fa;
+}
+.auction-end {
+    font-weight: bold;
+}
+.current-price {
+    font-size: 1.2em;
+}
+</style>
+{% endblock %}

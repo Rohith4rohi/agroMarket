@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AgroMarket{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">Welcome back, {{ current_user.username }}!</h2>
+                            <p class="mb-0 mt-2">
+                                <i class="fas {% if current_user.user_type == 'farmer' %}fa-tractor{% else %}fa-shopping-cart{% endif %} me-2"></i>
+                                You are logged in as a <strong>{{ current_user.user_type|title }}</strong>
+                            </p>
+                        </div>
+                        {% if current_user.user_type == 'farmer' %}
+                            <a href="{{ url_for('post_product') }}" class="btn btn-light">
+                                <i class="fas fa-plus"></i> Post New Product
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Products</h6>
+                            <h3 class="mb-0">{{ products|length }}</h3>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-box fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Active Bids</h6>
+                            <h3 class="mb-0">{{ active_bids|length }}</h3>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-gavel fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">
+                                {% if current_user.user_type == 'farmer' %}Active Auctions{% else %}Won Bids{% endif %}
+                            </h6>
+                            <h3 class="mb-0">
+                                {% if current_user.user_type == 'farmer' %}
+                                    {{ products|selectattr('status', 'equalto', 'active')|list|length }}
+                                {% else %}
+                                    {{ active_bids|selectattr('product.status', 'equalto', 'closed')|list|length }}
+                                {% endif %}
+                            </h3>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas {% if current_user.user_type == 'farmer' %}fa-clock{% else %}fa-trophy{% endif %} fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">
+                                {% if current_user.user_type == 'farmer' %}Total Revenue{% else %}Total Spent{% endif %}
+                            </h6>
+                            <h4 class="mb-0">₹0.00</h4>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-rupee-sign fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="products-tab" data-bs-toggle="tab" data-bs-target="#products" type="button" role="tab">
+                        <i class="fas fa-box"></i> 
+                        {% if current_user.user_type == 'farmer' %}My Products{% else %}Available Products{% endif %}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="bids-tab" data-bs-toggle="tab" data-bs-target="#bids" type="button" role="tab">
+                        <i class="fas fa-gavel"></i> My Bids
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactions" type="button" role="tab">
+                        <i class="fas fa-history"></i> Transaction History
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content p-3 border border-top-0 rounded-bottom bg-white" id="dashboardTabContent">
+                <!-- Products Tab -->
+                <div class="tab-pane fade show active" id="products" role="tabpanel">
+                    {% if products %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th>Quantity</th>
+                                        <th>Current Price</th>
+                                        <th>Base Price</th>
+                                        <th>Status</th>
+                                        <th>Auction Ends</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in products %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ product.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">ID: #{{ product.id }}</small>
+                                            {% if product.image_filename %}
+                                                <br>
+                                                <img src="{{ url_for('static', filename='uploads/' + product.image_filename) }}" 
+                                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ product.category }}</td>
+                                        <td>
+                                            {% if product.is_bulk_sale %}
+                                                {{ product.available_quantity }} / {{ product.total_quantity }} {{ product.unit }}
+                                                <br><small class="text-muted">Partial sale available</small>
+                                            {% else %}
+                                                {{ product.total_quantity }} {{ product.unit }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-success">₹{{ "%.2f"|format(product.current_price) }}</span>
+                                            {% if product.bids|length > 0 %}
+                                                <br><small class="text-muted">{{ product.bids|length }} bids</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>₹{{ "%.2f"|format(product.base_price) }}</td>
+                                        <td>
+                                            {% if product.status == 'active' %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% elif product.status == 'closed' %}
+                                                <span class="badge bg-secondary">Closed</span>
+                                            {% elif product.status == 'partial' %}
+                                                <span class="badge bg-info">Partially Sold</span>
+                                            {% elif product.status == 'sold' %}
+                                                <span class="badge bg-dark">Sold Out</span>
+                                            {% else %}
+                                                <span class="badge bg-info">{{ product.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if product.status == 'active' %}
+                                                <span class="auction-countdown" data-end="{{ product.auction_end.isoformat() }}">
+                                                    {{ product.auction_end.strftime('%Y-%m-%d %H:%M') }}
+                                                </span>
+                                            {% else %}
+                                                {{ product.auction_end.strftime('%Y-%m-%d %H:%M') }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-outline-success" title="View">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                {% if current_user.user_type == 'farmer' and product.status == 'active' %}
+                                                    <button class="btn btn-outline-warning" onclick="closeAuction({{ product.id }})" title="Close Auction">
+                                                        <i class="fas fa-stop"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+                            <h5>No products found</h5>
+                            {% if current_user.user_type == 'farmer' %}
+                                <p class="text-muted">Start by posting your first product!</p>
+                                <a href="{{ url_for('post_product') }}" class="btn btn-success">
+                                    <i class="fas fa-plus"></i> Post Product
+                                </a>
+                            {% else %}
+                                <p class="text-muted">Check back later for new products</p>
+                                <a href="{{ url_for('index') }}" class="btn btn-success">
+                                    <i class="fas fa-search"></i> Browse Products
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Bids Tab -->
+                <div class="tab-pane fade" id="bids" role="tabpanel">
+                    {% if active_bids %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Farmer</th>
+                                        <th>Your Bid</th>
+                                        <th>Current Price</th>
+                                        <th>Quantity</th>
+                                        <th>Status</th>
+                                        <th>Bid Time</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for bid in active_bids %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ bid.product.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ bid.product.category }}</small>
+                                        </td>
+                                        <td>{{ bid.product.farmer.username }}</td>
+                                        <td>
+                                            <span class="fw-bold text-success">₹{{ "%.2f"|format(bid.amount) }}</span>
+                                        </td>
+                                        <td>₹{{ "%.2f"|format(bid.product.current_price) }}</td>
+                                        <td>
+                                            {% if bid.quantity_requested %}
+                                                {{ bid.quantity_requested }} {{ bid.product.unit }}
+                                            {% else %}
+                                                {{ bid.product.total_quantity }} {{ bid.product.unit }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if bid.product.status == 'active' %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% elif bid.amount == bid.product.current_price and bid.product.status == 'closed' %}
+                                                <span class="badge bg-warning">Won</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Lost</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ bid.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <a href="{{ url_for('product_detail', product_id=bid.product.id) }}" class="btn btn-sm btn-outline-success">
+                                                View Product
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-gavel fa-4x text-muted mb-3"></i>
+                            <h5>No bids yet</h5>
+                            <p class="text-muted">Start bidding on products to see them here</p>
+                            <a href="{{ url_for('index') }}" class="btn btn-success">
+                                <i class="fas fa-search"></i> Browse Products
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Transactions Tab -->
+                <div class="tab-pane fade" id="transactions" role="tabpanel">
+                    {% if current_user.user_type == 'buyer' and partial_transactions %}
+                        <h5 class="mb-3">Your Purchases</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Farmer</th>
+                                        <th>Quantity</th>
+                                        <th>Price/Unit</th>
+                                        <th>Total</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for trans in partial_transactions %}
+                                    <tr>
+                                        <td>{{ trans.product.name }}</td>
+                                        <td>{{ trans.farmer.username }}</td>
+                                        <td>{{ trans.quantity }} {{ trans.product.unit }}</td>
+                                        <td>₹{{ "%.2f"|format(trans.price_per_unit) }}</td>
+                                        <td>₹{{ "%.2f"|format(trans.total_amount) }}</td>
+                                        <td>{{ trans.transaction_date.strftime('%Y-%m-%d') }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% elif current_user.user_type == 'farmer' and partial_sales %}
+                        <h5 class="mb-3">Your Sales</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Buyer</th>
+                                        <th>Quantity</th>
+                                        <th>Price/Unit</th>
+                                        <th>Total</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sale in partial_sales %}
+                                    <tr>
+                                        <td>{{ sale.product.name }}</td>
+                                        <td>{{ sale.buyer.username }}</td>
+                                        <td>{{ sale.quantity }} {{ sale.product.unit }}</td>
+                                        <td>₹{{ "%.2f"|format(sale.price_per_unit) }}</td>
+                                        <td>₹{{ "%.2f"|format(sale.total_amount) }}</td>
+                                        <td>{{ sale.transaction_date.strftime('%Y-%m-%d') }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-exchange-alt fa-4x text-muted mb-3"></i>
+                            <h5>No transactions yet</h5>
+                            <p class="text-muted">Your completed transactions will appear here</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Countdown timers for auctions
+document.addEventListener('DOMContentLoaded', function() {
+    const countdownElements = document.querySelectorAll('.auction-countdown');
+    
+    countdownElements.forEach(element => {
+        const endTime = new Date(element.dataset.end).getTime();
+        
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = endTime - now;
+            
+            if (distance < 0) {
+                element.innerHTML = 'Auction Ended';
+                element.classList.add('text-danger');
+                return;
+            }
+            
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            let timeText = '';
+            if (days > 0) timeText = `${days}d `;
+            timeText += `${hours}h ${minutes}m ${seconds}s`;
+            element.innerHTML = timeText;
+        }
+        
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    });
+});
+
+function closeAuction(productId) {
+    if (confirm('Are you sure you want to close this auction?')) {
+        fetch(`/product/${productId}/close`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error closing auction');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error closing auction');
+        });
+    }
+}
+</script>
+
+<style>
+.stat-card {
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(40, 167, 69, 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.nav-tabs .nav-link.active {
+    color: #28a745;
+    font-weight: bold;
+    border-bottom: 3px solid #28a745;
+}
+.table td {
+    vertical-align: middle;
+}
+.auction-countdown {
+    font-family: monospace;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

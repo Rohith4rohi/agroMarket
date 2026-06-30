@@ -1,0 +1,617 @@
+{% extends "base.html" %}
+
+{% block title %}Post Product - AgroMarket{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus-circle"></i> Post New Product</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('post_product') }}" id="productForm" enctype="multipart/form-data">
+                        <!-- Basic Information -->
+                        <h5 class="text-success mb-3">Basic Information</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="name" class="form-label">Product Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required 
+                                       placeholder="e.g., Organic Wheat, Fresh Tomatoes"
+                                       minlength="3" maxlength="100">
+                                <div class="invalid-feedback">Please enter a product name</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="category" class="form-label">Category *</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">Select Category</option>
+                                    <option value="Grains">Grains</option>
+                                    <option value="Vegetables">Vegetables</option>
+                                    <option value="Fruits">Fruits</option>
+                                    <option value="Pulses">Pulses</option>
+                                    <option value="Spices">Spices</option>
+                                    <option value="Oilseeds">Oilseeds</option>
+                                    <option value="Dairy">Dairy Products</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a category</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quantity and Price -->
+                        <h5 class="text-success mb-3 mt-4">Quantity & Pricing</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="quantity" class="form-label">Quantity *</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" 
+                                       step="0.01" min="0.01" required placeholder="0.00">
+                                <div class="invalid-feedback">Please enter a valid quantity</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="unit" class="form-label">Unit *</label>
+                                <select class="form-select" id="unit" name="unit" required>
+                                    <option value="kg">Kilogram (kg)</option>
+                                    <option value="quintal">Quintal (100 kg)</option>
+                                    <option value="ton">Ton (1000 kg)</option>
+                                    <option value="bag">Bag</option>
+                                    <option value="piece">Piece</option>
+                                    <option value="dozen">Dozen</option>
+                                    <option value="litre">Litre</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="base_price" class="form-label">Base Price (per unit) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="number" class="form-control" id="base_price" name="base_price" 
+                                           step="0.01" min="0.01" required placeholder="0.00">
+                                </div>
+                                <div class="invalid-feedback">Please enter a valid price</div>
+                            </div>
+                            <div class="row mb-3">
+    <div class="col-md-12">
+        <div id="marketPriceInfo" class="alert alert-info" style="display: none;">
+            <i class="fas fa-chart-line"></i> 
+            <strong>Current Market Price:</strong> 
+            <span id="marketPriceValue">₹0.00</span> per unit
+            <br>
+            <small id="marketRecommendation"></small>
+        </div>
+    </div>
+</div>
+                        </div>
+                        
+                        <!-- Auction Details -->
+                        <h5 class="text-success mb-3 mt-4">Auction Details</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="auction_end" class="form-label">Auction End Date & Time *</label>
+                                <input type="datetime-local" class="form-control" id="auction_end" name="auction_end" required>
+                                <small class="text-muted" id="auction_end_help">Minimum auction duration: 1 hour from now</small>
+                                <div class="invalid-feedback">Please select a future date and time</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="min_bid_increment" class="form-label">Minimum Bid Increment</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="number" class="form-control" id="min_bid_increment" name="min_bid_increment"
+                                           value="10" min="1" step="1" placeholder="10">
+                                </div>
+                                <small class="text-muted">Optional: Default is ₹10</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Product Description -->
+                        <h5 class="text-success mb-3 mt-4">Product Details</h5>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description *</label>
+                            <textarea class="form-control" id="description" name="description" rows="5" required
+                                      placeholder="Describe your product in detail: quality, variety, harvest date, organic certification, storage conditions, etc."
+                                      maxlength="1000"></textarea>
+                            <div class="form-text">Maximum 1000 characters. <span id="charCount">0</span>/1000</div>
+                        </div>
+                        
+                        <!-- Additional Details -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="quality" class="form-label">Quality Grade</label>
+                                <select class="form-select" id="quality" name="quality">
+                                    <option value="">Select Grade (Optional)</option>
+                                    <option value="Premium">Premium - Grade A</option>
+                                    <option value="Standard">Standard - Grade B</option>
+                                    <option value="Economy">Economy - Grade C</option>
+                                    <option value="Organic">Organic Certified</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="harvest_date" class="form-label">Harvest/Production Date</label>
+                                <input type="date" class="form-control" id="harvest_date" name="harvest_date">
+                                <small class="text-muted">When was this product harvested/produced?</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Farm/Business Location</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       placeholder="City, District, State" maxlength="200">
+                            </div>
+                            <small class="text-muted">Help buyers know where the product is from</small>
+                        </div>
+                        
+                        <!-- Image Upload -->
+                        <div class="mb-4">
+                            <label class="form-label">Product Images</label>
+                            <div class="border rounded p-4 text-center bg-light" id="dropZone">
+                                <i class="fas fa-cloud-upload-alt fa-4x text-muted mb-3"></i>
+                                <p class="mb-2"><strong>Drag & drop images here</strong></p>
+                                <p class="text-muted mb-3">or</p>
+                                <button type="button" class="btn btn-outline-success" onclick="document.getElementById('product_images').click()">
+                                    <i class="fas fa-folder-open"></i> Browse Files
+                                </button>
+                                <input type="file" class="d-none" id="product_images" name="product_images" 
+                                       multiple accept="image/jpeg,image/png,image/jpg">
+                                <p class="text-muted small mt-3">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Supported formats: JPG, PNG (Max 5MB each). Up to 5 images.
+                                </p>
+                            </div>
+                            <div id="imagePreview" class="row mt-3"></div>
+                        </div>
+                        
+                        <!-- Terms and Conditions -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms_agree" required>
+                                <label class="form-check-label" for="terms_agree">
+                                    I confirm that all information provided is accurate and I agree to the 
+                                    <a href="#" data-bs-toggle="modal" data-bs-target="#sellerTermsModal">Seller Terms & Conditions</a>
+                                </label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="shipping_agree" required>
+                                <label class="form-check-label" for="shipping_agree">
+                                    I understand that I am responsible for shipping/delivering the product to the winning bidder
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-outline-info" onclick="previewListing()">
+                                <i class="fas fa-eye"></i> Preview Listing
+                            </button>
+                            <div>
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-success" id="submitBtn">
+                                    <i class="fas fa-check"></i> Post Product
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tips Sidebar -->
+        <div class="col-md-4">
+            <div class="card shadow sticky-top" style="top: 20px;">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Pro Tips for Success</h5>
+                </div>
+                <div class="card-body">
+                    <div class="tip-item mb-3">
+                        <h6><i class="fas fa-check-circle text-success"></i> Set Competitive Prices</h6>
+                        <p class="small text-muted">Research current market rates. A competitive base price attracts more bidders.</p>
+                    </div>
+                    <div class="tip-item mb-3">
+                        <h6><i class="fas fa-check-circle text-success"></i> Detailed Description</h6>
+                        <p class="small text-muted">Include variety, quality, harvest date, storage conditions, and any certifications.</p>
+                    </div>
+                    <div class="tip-item mb-3">
+                        <h6><i class="fas fa-check-circle text-success"></i> Quality Photos</h6>
+                        <p class="small text-muted">Clear, well-lit photos from different angles increase buyer confidence.</p>
+                    </div>
+                    <div class="tip-item mb-3">
+                        <h6><i class="fas fa-check-circle text-success"></i> Optimal Auction Duration</h6>
+                        <p class="small text-muted">24-48 hours is usually sufficient. Weekends often see more bidding activity.</p>
+                    </div>
+                    <div class="tip-item mb-3">
+                        <h6><i class="fas fa-check-circle text-success"></i> Be Responsive</h6>
+                        <p class="small text-muted">Quick responses to buyer questions can lead to higher final bids.</p>
+                    </div>
+                    <hr>
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Platform Fee:</strong> A small fee of 1% will be charged on successful transactions.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seller Terms Modal -->
+<div class="modal fade" id="sellerTermsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Seller Terms & Conditions</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Product Listing Accuracy</h6>
+                <p>You confirm that all product information provided (including quantity, quality, and description) is accurate and truthful. Misrepresentation may result in account suspension.</p>
+                
+                <h6>2. Auction Commitment</h6>
+                <p>Once listed, you cannot withdraw the product during the active auction period except in exceptional circumstances approved by AgroMarket.</p>
+                
+                <h6>3. Sale Completion</h6>
+                <p>You are legally obligated to complete the sale to the winning bidder at the final bid price. Failure to complete sales may result in penalties.</p>
+                
+                <h6>4. Shipping & Handling</h6>
+                <p>You are responsible for packaging, shipping, or delivering the product as agreed with the buyer. Provide tracking information when applicable.</p>
+                
+                <h6>5. Quality Guarantee</h6>
+                <p>The product must match the description and be of marketable quality. Buyers have the right to dispute if products don't match description.</p>
+                
+                <h6>6. Platform Fees</h6>
+                <p>A 1% platform fee will be deducted from the final sale amount. This covers listing, marketing, and transaction processing.</p>
+                
+                <h6>7. Payment</h6>
+                <p>Payments are processed through our secure system. Funds will be released to your account after buyer confirms receipt.</p>
+                
+                <h6>8. Dispute Resolution</h6>
+                <p>Any disputes will be handled through AgroMarket's dispute resolution process. We aim for fair outcomes for both parties.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info text-white" data-bs-dismiss="modal">I Understand & Accept</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Product Listing Preview</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent">
+                <!-- Preview content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Edit Listing</button>
+                <button type="button" class="btn btn-success" onclick="submitForm()">Looks Good, Post It!</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set minimum datetime for auction end (client-side solution)
+document.addEventListener('DOMContentLoaded', function() {
+    // Set minimum date for auction end
+    const auctionEndInput = document.getElementById('auction_end');
+    const now = new Date();
+    now.setHours(now.getHours() + 1); // Add 1 hour minimum
+    
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+    auctionEndInput.min = minDateTime;
+    auctionEndInput.value = minDateTime; // Set default value
+    
+    // Set max date for harvest date
+    const harvestDateInput = document.getElementById('harvest_date');
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    harvestDateInput.max = todayStr;
+});
+
+// Character counter for description
+document.getElementById('description').addEventListener('input', function() {
+    const count = this.value.length;
+    document.getElementById('charCount').textContent = count;
+    
+    if (count > 1000) {
+        this.value = this.value.substring(0, 1000);
+        document.getElementById('charCount').textContent = 1000;
+    }
+});
+
+// Image upload preview
+document.getElementById('product_images').addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    
+    if (files.length > 5) {
+        alert('You can only upload up to 5 images');
+        this.value = '';
+        return;
+    }
+    
+    files.forEach((file, index) => {
+        if (file.size > 5 * 1024 * 1024) {
+            alert(`File ${file.name} is larger than 5MB`);
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const col = document.createElement('div');
+            col.className = 'col-md-4 mb-2';
+            col.innerHTML = `
+                <div class="position-relative">
+                    <img src="${e.target.result}" class="img-fluid rounded" alt="Preview ${index + 1}">
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" onclick="removeImage(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            preview.appendChild(col);
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    // Update dropzone text
+    const dropZone = document.getElementById('dropZone');
+    dropZone.querySelector('p strong').textContent = `${files.length} image(s) selected`;
+});
+
+// Drag and drop functionality
+const dropZone = document.getElementById('dropZone');
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight() {
+    dropZone.classList.add('bg-success', 'bg-opacity-10', 'border-success');
+}
+
+function unhighlight() {
+    dropZone.classList.remove('bg-success', 'bg-opacity-10', 'border-success');
+}
+
+dropZone.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    document.getElementById('product_images').files = files;
+    
+    // Trigger change event
+    const event = new Event('change', { bubbles: true });
+    document.getElementById('product_images').dispatchEvent(event);
+}
+
+// Form validation
+document.getElementById('productForm').addEventListener('submit', function(e) {
+    if (!this.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    this.classList.add('was-validated');
+});
+
+// Preview listing function
+function previewListing() {
+    // Collect form data
+    const form = document.getElementById('productForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        alert('Please fill in all required fields correctly');
+        return;
+    }
+    
+    const name = document.getElementById('name').value;
+    const category = document.getElementById('category').value;
+    const quantity = document.getElementById('quantity').value;
+    const unit = document.getElementById('unit').options[document.getElementById('unit').selectedIndex].text;
+    const basePrice = document.getElementById('base_price').value;
+    const description = document.getElementById('description').value;
+    const auctionEnd = new Date(document.getElementById('auction_end').value).toLocaleString();
+    const quality = document.getElementById('quality').value || 'Not specified';
+    const harvestDate = document.getElementById('harvest_date').value ? new Date(document.getElementById('harvest_date').value).toLocaleDateString() : 'Not specified';
+    const location = document.getElementById('location').value || 'Not specified';
+    
+    // Create preview HTML
+    const previewHTML = `
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title text-success">${name}</h4>
+                <p class="text-muted">Category: ${category}</p>
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6>Product Details</h6>
+                        <table class="table table-sm">
+                            <tr><th>Quantity:</th><td>${quantity} ${unit}</td></tr>
+                            <tr><th>Base Price:</th><td>₹${parseFloat(basePrice).toFixed(2)}</td></tr>
+                            <tr><th>Quality Grade:</th><td>${quality}</td></tr>
+                            <tr><th>Harvest Date:</th><td>${harvestDate}</td></tr>
+                            <tr><th>Location:</th><td>${location}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Auction Details</h6>
+                        <table class="table table-sm">
+                            <tr><th>Ends:</th><td>${auctionEnd}</td></tr>
+                            <tr><th>Starting Price:</th><td>₹${parseFloat(basePrice).toFixed(2)}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Description</h6>
+                    <p class="text-muted">${description}</p>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Images</h6>
+                    <div class="row" id="previewImages">
+                        ${Array.from(document.getElementById('product_images').files).map((file, i) => `
+                            <div class="col-4"><img src="${URL.createObjectURL(file)}" class="img-fluid rounded"></div>
+                        `).join('')}
+                        ${document.getElementById('product_images').files.length === 0 ? 
+                            '<p class="text-muted">No images uploaded</p>' : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('previewContent').innerHTML = previewHTML;
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+}
+
+// Submit form from preview
+function submitForm() {
+    document.getElementById('productForm').submit();
+}
+
+// Validate auction end date
+document.getElementById('auction_end').addEventListener('change', function() {
+    const selectedDate = new Date(this.value);
+    const minDate = new Date(this.min);
+    
+    if (selectedDate < minDate) {
+        alert('Auction end time must be at least 1 hour from now');
+        this.value = this.min;
+    }
+});
+
+// Calculate estimated fees
+document.getElementById('base_price').addEventListener('input', function() {
+    const price = parseFloat(this.value) || 0;
+    const platformFee = price * 0.01;
+    
+    // You could display this somewhere if you want
+    console.log(`Platform fee: ₹${platformFee.toFixed(2)}`);
+});
+</script>
+<script>
+// Fetch market price when category is selected
+document.getElementById('category').addEventListener('change', function() {
+    const category = this.value;
+    if (category) {
+        fetch(`/api/market-price/${category}`)
+            .then(response => response.json())
+            .then(data => {
+                const marketPriceInfo = document.getElementById('marketPriceInfo');
+                const marketPriceValue = document.getElementById('marketPriceValue');
+                const marketRecommendation = document.getElementById('marketRecommendation');
+                
+                marketPriceValue.textContent = `₹${data.price.toFixed(2)}`;
+                
+                // Show pricing recommendation
+                const basePrice = parseFloat(document.getElementById('base_price').value);
+                if (basePrice) {
+                    const diff = ((basePrice - data.price) / data.price) * 100;
+                    if (diff < -10) {
+                        marketRecommendation.innerHTML = '<span class="text-success">✓ Your price is below market rate. Consider increasing for better profit!</span>';
+                    } else if (diff > 10) {
+                        marketRecommendation.innerHTML = '<span class="text-warning">⚠️ Your price is above market rate. May affect competitiveness.</span>';
+                    } else {
+                        marketRecommendation.innerHTML = '<span class="text-info">ℹ️ Your price is competitive with current market rates.</span>';
+                    }
+                }
+                
+                marketPriceInfo.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching market price:', error);
+            });
+    }
+});
+
+// Check price comparison when base price changes
+document.getElementById('base_price').addEventListener('input', function() {
+    const category = document.getElementById('category').value;
+    if (category && this.value) {
+        fetch(`/api/market-price/${category}`)
+            .then(response => response.json())
+            .then(data => {
+                const basePrice = parseFloat(this.value);
+                const diff = ((basePrice - data.price) / data.price) * 100;
+                const marketRecommendation = document.getElementById('marketRecommendation');
+                
+                if (diff < -10) {
+                    marketRecommendation.innerHTML = '<span class="text-success">✓ Great! Your price is below market rate. This will attract more buyers!</span>';
+                } else if (diff > 10) {
+                    marketRecommendation.innerHTML = '<span class="text-warning">⚠️ Your price is above market rate. Consider lowering to stay competitive.</span>';
+                } else {
+                    marketRecommendation.innerHTML = '<span class="text-info">ℹ️ Good! Your price is competitive with current market rates.</span>';
+                }
+            });
+    }
+});
+</script>
+
+<style>
+.tip-item {
+    padding: 12px;
+    border-left: 4px solid #28a745;
+    background-color: #f8f9fa;
+    border-radius: 0 8px 8px 0;
+    transition: transform 0.2s;
+}
+.tip-item:hover {
+    transform: translateX(5px);
+    background-color: #f0f9f0;
+}
+.tip-item h6 {
+    margin-bottom: 5px;
+    color: #28a745;
+    font-weight: 600;
+}
+#dropZone {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+#dropZone:hover {
+    background-color: #e9f7e9 !important;
+    border-color: #28a745 !important;
+}
+#imagePreview img {
+    height: 100px;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+}
+.was-validated .form-control:invalid,
+.was-validated .form-select:invalid {
+    border-color: #dc3545;
+}
+.was-validated .form-control:valid,
+.was-validated .form-select:valid {
+    border-color: #28a745;
+}
+</style>
+{% endblock %}

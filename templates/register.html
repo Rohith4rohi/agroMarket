@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Register - AgroMarket{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white text-center">
+                    <h4 class="mb-0"><i class="fas fa-user-plus"></i> Create Account</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    <input type="text" class="form-control" id="username" name="username" required 
+                                           pattern="[a-zA-Z0-9]{3,20}" title="Username must be 3-20 characters long and contain only letters and numbers">
+                                </div>
+                                <small class="text-muted">3-20 characters, letters and numbers only</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control" id="password" name="password" required 
+                                           pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" 
+                                           title="Must contain at least one number, one uppercase and lowercase letter, and at least 8 characters">
+                                </div>
+                                <small class="text-muted">Minimum 8 characters with 1 uppercase, 1 lowercase, and 1 number</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="confirm_password" class="form-label">Confirm Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control" id="confirm_password" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">I am a:</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="user_type" id="farmer" value="farmer" required>
+                                        <label class="form-check-label" for="farmer">
+                                            <i class="fas fa-tractor text-success"></i> Farmer
+                                            <small class="d-block text-muted">I want to sell my produce</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="user_type" id="buyer" value="buyer" required>
+                                        <label class="form-check-label" for="buyer">
+                                            <i class="fas fa-shopping-cart text-primary"></i> Buyer
+                                            <small class="d-block text-muted">I want to purchase products</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a>
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">Register</button>
+                        </div>
+                    </form>
+                    
+                    <hr>
+                    <div class="text-center">
+                        <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms and Conditions Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Terms and Conditions</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. User Responsibilities</h6>
+                <p>Users must provide accurate information and maintain the confidentiality of their account.</p>
+                
+                <h6>2. Trading Rules</h6>
+                <p>All transactions must be conducted fairly and in good faith. Bidding is binding and winning bidders must complete the purchase.</p>
+                
+                <h6>3. Platform Usage</h6>
+                <p>AgroMarket provides a platform for connecting farmers and buyers but is not responsible for the quality of products or final transactions.</p>
+                
+                <h6>4. Privacy</h6>
+                <p>We respect your privacy and protect your personal information as outlined in our Privacy Policy.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">I Understand</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    var password = document.getElementById('password').value;
+    var confirm = document.getElementById('confirm_password').value;
+    
+    if (password !== confirm) {
+        e.preventDefault();
+        alert('Passwords do not match!');
+    }
+});
+</script>
+
+<style>
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+.form-check:hover {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 10px;
+}
+</style>
+{% endblock %}

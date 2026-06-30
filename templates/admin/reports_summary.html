@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Reports Summary - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-line"></i> Reports & Analytics</h2>
+        <div>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#pdfRangeModal">
+                <i class="fas fa-calendar-range"></i> Generate Custom PDF
+            </button>
+        </div>
+    </div>
+    
+    <!-- Quick Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h6 class="card-title">Total Reports</h6>
+                    <h3 class="mb-0">{{ reports|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h6 class="card-title">Products Added (Last 30 Days)</h6>
+                    <h3 class="mb-0">{{ reports|sum(attribute='total_products_listed') }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h6 class="card-title">Products Sold (Last 30 Days)</h6>
+                    <h3 class="mb-0">{{ reports|sum(attribute='total_products_sold') }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h6 class="card-title">Total Revenue (Last 30 Days)</h6>
+                    <h3 class="mb-0">₹{{ "%.2f"|format(reports|sum(attribute='total_revenue')) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Daily Stats Chart -->
+    {% if daily_stats %}
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Last 7 Days Performance</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="performanceChart" height="300"></canvas>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Reports Table -->
+    <div class="card">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Daily Reports</h5>
+            <a href="{{ url_for('generate_report') }}" method="POST" 
+               onclick="event.preventDefault(); fetch('{{ url_for('generate_report') }}', {method: 'POST'}).then(() => location.reload());"
+               class="btn btn-light btn-sm">
+                <i class="fas fa-sync"></i> Generate Today's Report
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-success">
+                        <tr>
+                            <th>Date</th>
+                            <th>Products Listed</th>
+                            <th>Products Sold</th>
+                            <th>Total Revenue</th>
+                            <th>Active Buyers</th>
+                            <th>Active Farmers</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td>{{ report.report_date|format_date }}</td>
+                            <td>{{ report.total_products_listed }}</td>
+                            <td>{{ report.total_products_sold }}</td>
+                            <td>₹{{ "%.2f"|format(report.total_revenue) }}</td>
+                            <td>{{ report.total_buyers }}</td>
+                            <td>{{ report.total_farmers }}</td>
+                            <td>
+                                <a href="{{ url_for('daily_pdf_report', date=report.report_date.strftime('%Y-%m-%d')) }}" 
+                                   class="btn btn-sm btn-success">
+                                    <i class="fas fa-file-pdf"></i> Download PDF
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No reports found. Generate a report to get started.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PDF Range Modal -->
+<div class="modal fade" id="pdfRangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('generate_pdf_range') }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Generate Custom PDF Report</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> This report will include all products added and purchased within the selected date range.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-file-pdf"></i> Generate PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if daily_stats %}
+// Create performance chart
+const ctx = document.getElementById('performanceChart').getContext('2d');
+const chartData = {
+    labels: {{ daily_stats|map(attribute='date')|list|tojson }},
+    datasets: [
+        {
+            label: 'Products Added',
+            data: {{ daily_stats|map(attribute='products_added')|list|tojson }},
+            backgroundColor: 'rgba(46, 125, 50, 0.2)',
+            borderColor: '#2e7d32',
+            borderWidth: 2,
+            tension: 0.4
+        },
+        {
+            label: 'Products Sold',
+            data: {{ daily_stats|map(attribute='products_sold')|list|tojson }},
+            backgroundColor: 'rgba(245, 124, 0, 0.2)',
+            borderColor: '#f57c00',
+            borderWidth: 2,
+            tension: 0.4
+        },
+        {
+            label: 'Revenue (₹)',
+            data: {{ daily_stats|map(attribute='revenue')|list|tojson }},
+            backgroundColor: 'rgba(33, 150, 243, 0.2)',
+            borderColor: '#2196f3',
+            borderWidth: 2,
+            tension: 0.4,
+            yAxisID: 'y1'
+        }
+    ]
+};
+
+new Chart(ctx, {
+    type: 'line',
+    data: chartData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Daily Market Performance'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Count'
+                }
+            },
+            y1: {
+                beginAtZero: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Revenue (₹)'
+                },
+                grid: {
+                    drawOnChartArea: false
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// Set default dates for range picker
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const lastWeek = new Date(today);
+    lastWeek.setDate(today.getDate() - 7);
+    
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    if (startDateInput && endDateInput) {
+        startDateInput.value = lastWeek.toISOString().split('T')[0];
+        endDateInput.value = today.toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

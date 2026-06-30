@@ -1,0 +1,112 @@
+/* Custom styles for AgroMarket */
+
+/* Hero section */
+.hero {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+}
+
+/* Cards */
+.card {
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Feature icons */
+.features i {
+    font-size: 3rem;
+    color: #28a745;
+}
+
+/* Dashboard stats */
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.stat-card i {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+
+/* Bid history */
+.bid-history {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.bid-item {
+    transition: background-color 0.2s;
+}
+
+.bid-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Product status badges */
+.badge {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+
+/* Form styles */
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Auction timer */
+.countdown-timer {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #dc3545;
+}
+
+/* Responsive tables */
+.table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .hero {
+        text-align: center;
+        padding: 40px 0;
+    }
+    
+    .hero img {
+        margin-top: 30px;
+    }
+    
+    .stat-card {
+        margin-bottom: 15px;
+    }
+}

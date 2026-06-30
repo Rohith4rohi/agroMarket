@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+
+{% block title %}Market Insights - Real-time Prices{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-line"></i> Real-time Market Insights</h2>
+        <button class="btn btn-success" onclick="refreshPrices()">
+            <i class="fas fa-sync-alt"></i> Refresh Prices
+        </button>
+    </div>
+    
+    <!-- Market Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h6 class="card-title">Overall Market Sentiment</h6>
+                    <h3 class="mb-0" id="marketSentiment">Stable</h3>
+                    <small>Last updated: <span id="lastUpdate">Just now</span></small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h6 class="card-title">Average Price (All)</h6>
+                    <h3 class="mb-0" id="avgPrice">₹0</h3>
+                    <small>per kg</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h6 class="card-title">Top Gainers</h6>
+                    <h3 class="mb-0" id="topGainers">-</h3>
+                    <small>Last 24 hours</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h6 class="card-title">Active Products</h6>
+                    <h3 class="mb-0" id="activeProducts">{{ active_products_count or 0 }}</h3>
+                    <small>Currently listed</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Category-wise Market Prices -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Category-wise Market Prices</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="categoryPriceChart" height="300"></canvas>
+        </div>
+    </div>
+    
+    <!-- Trending Commodities -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-fire"></i> Trending Commodities</h5>
+                </div>
+                <div class="card-body">
+                    <div id="trendingCommodities">
+                        {% for commodity in trending_commodities %}
+                        <div class="trend-item mb-3 p-2 border rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">{{ commodity.name }}</h6>
+                                    <small class="text-muted">{{ commodity.price.location }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <h5 class="mb-0">₹{{ "%.2f"|format(commodity.price.price) }}</h5>
+                                    <small class="{% if commodity.price.trend == 'up' %}text-success{% elif commodity.price.trend == 'down' %}text-danger{% else %}text-muted{% endif %}">
+                                        {% if commodity.price.trend == 'up' %}
+                                            <i class="fas fa-arrow-up"></i> +{{ commodity.price.trend_percent }}%
+                                        {% elif commodity.price.trend == 'down' %}
+                                            <i class="fas fa-arrow-down"></i> -{{ commodity.price.trend_percent }}%
+                                        {% else %}
+                                            <i class="fas fa-minus"></i> Stable
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Pricing Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recommendations">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> 
+                            <strong>Vegetables:</strong> Current prices are stable. Good time to list.
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-chart-line"></i> 
+                            <strong>Fruits:</strong> Prices trending upward. Consider holding if possible.
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>Grains:</strong> Market saturation detected. Competitive pricing recommended.
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6>Price Your Products Right</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-tag text-success"></i> Set price 5-10% below market for quick sale</li>
+                        <li><i class="fas fa-chart-line text-info"></i> Premium quality can command 15-20% premium</li>
+                        <li><i class="fas fa-truck text-primary"></i> Consider delivery costs in your pricing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Market Trend Analysis -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-line"></i> 7-Day Price Trend Analysis</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="trendChart" height="300"></canvas>
+        </div>
+    </div>
+    
+    <!-- Price Alert Section -->
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="fas fa-bell"></i> Price Alerts</h5>
+        </div>
+        <div class="card-body">
+            <p>Set price alerts for your favorite commodities:</p>
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="alertCommodity" placeholder="Enter commodity name">
+                </div>
+                <div class="col-md-4">
+                    <input type="number" class="form-control" id="alertPrice" placeholder="Target price (₹)">
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-danger w-100" onclick="setPriceAlert()">
+                        <i class="fas fa-bell"></i> Set Alert
+                    </button>
+                </div>
+            </div>
+            <div id="alertMessage" class="mt-3"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let categoryChart, trendChart;
+
+// Initialize charts
+document.addEventListener('DOMContentLoaded', function() {
+    fetchMarketData();
+    setInterval(fetchMarketData, 60000); // Refresh every minute
+});
+
+function fetchMarketData() {
+    fetch('/api/market-trends')
+        .then(response => response.json())
+        .then(data => {
+            updateCategoryChart(data);
+            calculateMarketStats(data);
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function updateCategoryChart(data) {
+    const categories = data.map(item => item.category);
+    const prices = data.map(item => item.price);
+    const backgroundColors = prices.map(price => {
+        if (price > 100) return 'rgba(220, 53, 69, 0.7)';
+        if (price > 50) return 'rgba(255, 193, 7, 0.7)';
+        return 'rgba(40, 167, 69, 0.7)';
+    });
+    
+    const ctx = document.getElementById('categoryPriceChart').getContext('2d');
+    
+    if (categoryChart) {
+        categoryChart.destroy();
+    }
+    
+    categoryChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: categories,
+            datasets: [{
+                label: 'Market Price (₹ per unit)',
+                data: prices,
+                backgroundColor: backgroundColors,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Price (₹)'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += '₹' + context.raw.toFixed(2);
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Create trend chart
+    generateTrendChart();
+}
+
+function generateTrendChart() {
+    // Generate last 7 days data
+    const dates = [];
+    const vegetablePrices = [];
+    const fruitPrices = [];
+    const grainPrices = [];
+    
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        dates.push(date.toLocaleDateString());
+        
+        // Generate realistic price trends
+        vegetablePrices.push(35 + Math.random() * 10);
+        fruitPrices.push(70 + Math.random() * 15);
+        grainPrices.push(25 + Math.random() * 5);
+    }
+    
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    
+    if (trendChart) {
+        trendChart.destroy();
+    }
+    
+    trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [
+                {
+                    label: 'Vegetables',
+                    data: vegetablePrices,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Fruits',
+                    data: fruitPrices,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Grains',
+                    data: grainPrices,
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: '7-Day Price Trends'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Price (₹ per kg)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function calculateMarketStats(data) {
+    const prices = data.map(item => item.price);
+    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+    document.getElementById('avgPrice').innerHTML = `₹${avgPrice.toFixed(2)}`;
+    
+    // Calculate market sentiment
+    const increasing = data.filter(item => item.trend === 'up').length;
+    const decreasing = data.filter(item => item.trend === 'down').length;
+    
+    let sentiment = 'Stable';
+    if (increasing > decreasing + 2) sentiment = 'Bullish (Upward)';
+    if (decreasing > increasing + 2) sentiment = 'Bearish (Downward)';
+    
+    document.getElementById('marketSentiment').innerHTML = sentiment;
+    document.getElementById('lastUpdate').innerHTML = new Date().toLocaleTimeString();
+    
+    // Find top gainers
+    const topGainers = data.filter(item => item.trend === 'up').slice(0, 3);
+    if (topGainers.length > 0) {
+        document.getElementById('topGainers').innerHTML = topGainers.map(g => g.category).join(', ');
+    }
+}
+
+function refreshPrices() {
+    fetchMarketData();
+    showNotification('Market prices refreshed!', 'success');
+}
+
+function setPriceAlert() {
+    const commodity = document.getElementById('alertCommodity').value;
+    const price = document.getElementById('alertPrice').value;
+    
+    if (!commodity || !price) {
+        showNotification('Please enter both commodity and price', 'danger');
+        return;
+    }
+    
+    // Save alert to localStorage
+    const alerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]');
+    alerts.push({
+        commodity: commodity,
+        targetPrice: parseFloat(price),
+        created: new Date().toISOString()
+    });
+    localStorage.setItem('priceAlerts', JSON.stringify(alerts));
+    
+    document.getElementById('alertMessage').innerHTML = `
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> 
+            Alert set for ${commodity} at ₹${price}. You will be notified when price reaches this level.
+        </div>
+    `;
+    
+    // Clear inputs
+    document.getElementById('alertCommodity').value = '';
+    document.getElementById('alertPrice').value = '';
+    
+    setTimeout(() => {
+        document.getElementById('alertMessage').innerHTML = '';
+    }, 5000);
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    notification.style.zIndex = '9999';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Check price alerts periodically
+function checkPriceAlerts() {
+    const alerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]');
+    alerts.forEach(alert => {
+        fetch(`/api/market-price/${alert.commodity}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.price <= alert.targetPrice) {
+                    showNotification(`Price alert! ${alert.commodity} is now ₹${data.price} (Target: ₹${alert.targetPrice})`, 'warning');
+                    // Remove alert after triggering
+                    const updatedAlerts = alerts.filter(a => a !== alert);
+                    localStorage.setItem('priceAlerts', JSON.stringify(updatedAlerts));
+                }
+            });
+    });
+}
+
+// Check alerts every 5 minutes
+setInterval(checkPriceAlerts, 300000);
+</script>
+
+<style>
+.trend-item {
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+.trend-item:hover {
+    transform: translateX(5px);
+    background-color: #f8f9fa;
+}
+.card {
+    border-radius: 10px;
+    overflow: hidden;
+}
+</style>
+{% endblock %}
