@@ -1335,4 +1335,7 @@ if __name__ == '__main__':
     # Start the auction checker when the app starts
     # Add this line before socketio.run(app, debug=True)
     start_auction_checker()
-    socketio.run(app, debug=True)
+    socketio.run(app, 
+                host="0.0.0.0",
+                port=int(os.environ.get("PORT", 5000)),
+                debug=False)
